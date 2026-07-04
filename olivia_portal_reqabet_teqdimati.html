@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Olivia Smart Portal — Rəhbərlik Hesabatı</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --plum-950:#1B1030;
+    --plum-900:#241640;
+    --plum-800:#2F1E52;
+    --violet-600:#7C3AED;
+    --violet-400:#A78BFA;
+    --lavender-100:#F4F1FC;
+    --gold-500:#D4A657;
+    --gold-300:#E7C888;
+    --green-500:#4ADE80;
+    --red-400:#F97066;
+    --ink:#EDE7FB;
+    --ink-dim:#B7ACD6;
+    --card:rgba(255,255,255,0.045);
+    --card-border:rgba(255,255,255,0.09);
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    background:
+      radial-gradient(1200px 700px at 85% -10%, rgba(124,58,237,0.35), transparent 60%),
+      radial-gradient(900px 600px at -10% 110%, rgba(212,166,87,0.18), transparent 55%),
+      linear-gradient(180deg, var(--plum-950), var(--plum-900) 60%, var(--plum-950));
+    color:var(--ink);
+    font-family:'Inter', -apple-system, sans-serif;
+  }
+  .deck{ position:relative; width:100vw; height:100vh; }
+  .slide{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; justify-content:center;
+    padding: 9vh 8vw 11vh;
+    opacity:0; transform: translateX(40px);
+    pointer-events:none;
+    transition: opacity .55s cubic-bezier(.22,.61,.36,1), transform .55s cubic-bezier(.22,.61,.36,1);
+    overflow-y:auto;
+  }
+  .slide.active{ opacity:1; transform:translateX(0); pointer-events:auto; }
+
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace; letter-spacing:.14em; text-transform:uppercase;
+    font-size:12px; color:var(--gold-300); display:flex; align-items:center; gap:10px; margin-bottom:16px;
+    opacity:0; animation: rise .6s ease forwards; animation-delay:.05s;
+  }
+  .eyebrow::before{ content:''; width:22px; height:1px; background:var(--gold-300); display:inline-block; }
+
+  h1{
+    font-family:'Fraunces', serif; font-weight:600; font-size: clamp(26px, 3.8vw, 50px);
+    line-height:1.08; margin:0 0 14px; letter-spacing:-0.01em;
+    opacity:0; animation: rise .7s ease forwards; animation-delay:.12s;
+  }
+  h1 em{ font-style:italic; font-weight:300; color:var(--violet-400); }
+  .lede{
+    max-width:680px; font-size:15.5px; line-height:1.6; color:var(--ink-dim); margin:0 0 6px;
+    opacity:0; animation: rise .7s ease forwards; animation-delay:.2s;
+  }
+  @keyframes rise{ from{opacity:0; transform:translateY(14px);} to{opacity:1; transform:translateY(0);} }
+  @keyframes pop{ from{opacity:0; transform:scale(.9) translateY(10px);} to{opacity:1; transform:scale(1) translateY(0);} }
+
+  .logo-mark{
+    position:absolute; top:4.5vh; left:8vw; display:flex; align-items:center; gap:10px;
+    font-family:'Fraunces', serif; font-size:19px; font-weight:600; color:var(--ink); z-index:5;
+  }
+  .logo-mark .o{ width:24px; height:24px; border-radius:50%; border:2.5px solid var(--gold-500); position:relative; }
+  .logo-mark .o::after{
+    content:''; position:absolute; inset:5px; border-radius:50%; border:2.5px solid var(--violet-400); border-left-color:transparent; border-bottom-color:transparent;
+    transform:rotate(45deg);
+  }
+
+  /* stats */
+  .stat-row{ display:flex; gap:14px; margin-top:26px; flex-wrap:wrap; }
+  .stat-card{
+    background:var(--card); border:1px solid var(--card-border); border-radius:14px;
+    padding:16px 20px; min-width:135px;
+    opacity:0; animation: rise .6s ease forwards;
+    backdrop-filter: blur(6px);
+  }
+  .stat-num{ font-family:'Fraunces', serif; font-size:32px; font-weight:600; color:var(--gold-300); }
+  .stat-label{ font-size:12px; color:var(--ink-dim); margin-top:2px; }
+
+  /* nodes */
+  .stack-flow{ display:flex; align-items:stretch; gap:14px; margin-top:28px; flex-wrap:wrap; }
+  .stack-node{
+    background:var(--card); border:1px solid var(--card-border); border-radius:16px;
+    padding:18px 22px; min-width:200px; max-width:280px; text-align:left; flex:1;
+    opacity:0; animation: pop .5s cubic-bezier(.34,1.56,.64,1) forwards;
+  }
+  .stack-node .tag{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--violet-400); text-transform:uppercase; letter-spacing:.08em; }
+  .stack-node .name{ font-family:'Fraunces',serif; font-size:18px; margin-top:6px; }
+  .stack-node .desc{ font-size:12px; color:var(--ink-dim); margin-top:6px; line-height:1.55; }
+  .stack-node.hero{ border-color:rgba(212,166,87,0.5); background:rgba(212,166,87,0.07); }
+  .stack-node.hero .tag{ color:var(--gold-300); }
+
+  /* exec summary cards */
+  .exec-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px; margin-top:26px; max-width:920px; }
+  .exec-card{
+    background:var(--card); border:1px solid var(--card-border); border-radius:16px; padding:20px 22px;
+    opacity:0; animation: rise .6s ease forwards;
+  }
+  .exec-card .num{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--gold-300); letter-spacing:.1em; }
+  .exec-card .ttl{ font-family:'Fraunces',serif; font-size:17px; font-weight:600; margin:8px 0 8px; line-height:1.3; }
+  .exec-card .bd{ font-size:12.5px; color:var(--ink-dim); line-height:1.6; }
+  .exec-card .bd b{ color:var(--ink); }
+
+  /* checklist */
+  .check-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px 24px; margin-top:22px; max-width:840px; }
+  .check-item{ display:flex; align-items:flex-start; gap:12px; opacity:0; animation: rise .5s ease forwards; padding:8px 10px; border-radius:10px; }
+  .check-item .mark{
+    width:21px; height:21px; min-width:21px; border-radius:50%; background:rgba(74,222,128,0.15);
+    border:1px solid var(--green-500); color:var(--green-500); font-size:11px;
+    display:flex; align-items:center; justify-content:center; margin-top:2px;
+  }
+  .check-item .txt b{ font-size:13.5px; }
+  .check-item .txt span{ display:block; font-size:11.5px; color:var(--ink-dim); margin-top:2px; }
+
+  /* before/after */
+  .ba-row{ display:flex; gap:16px; margin-top:24px; flex-wrap:wrap; max-width:960px; }
+  .ba-card{ flex:1; min-width:280px; border-radius:16px; padding:18px 22px; opacity:0; animation: rise .6s ease forwards; }
+  .ba-card.before{ background:rgba(249,112,102,0.08); border:1px solid rgba(249,112,102,0.35); }
+  .ba-card.after{ background:rgba(74,222,128,0.08); border:1px solid rgba(74,222,128,0.35); }
+  .ba-tag{ font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; }
+  .ba-card.before .ba-tag{ color:var(--red-400); }
+  .ba-card.after .ba-tag{ color:var(--green-500); }
+  .ba-card ul{ margin:12px 0 0; padding:0; list-style:none; }
+  .ba-card li{ font-size:12.8px; line-height:1.65; color:var(--ink); padding-left:18px; position:relative; margin-bottom:4px; }
+  .ba-card li::before{ content:'—'; position:absolute; left:0; color:var(--ink-dim); }
+
+  .punchline{
+    margin-top:18px; padding:13px 18px; border-radius:12px; max-width:820px;
+    background:linear-gradient(90deg, rgba(124,58,237,0.18), rgba(212,166,87,0.12));
+    border:1px solid rgba(212,166,87,0.3); font-family:'Fraunces',serif; font-size:15px; font-style:italic; color:var(--gold-300);
+    opacity:0; animation: rise .6s ease forwards; animation-delay:.55s;
+  }
+
+  /* comparison table */
+  .cmp-wrap{ margin-top:22px; max-width:880px; opacity:0; animation: rise .6s ease forwards; animation-delay:.3s; }
+  table.cmp{ width:100%; border-collapse:collapse; font-size:12.5px; background:var(--card); border:1px solid var(--card-border); border-radius:14px; overflow:hidden; }
+  table.cmp th{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--gold-300); padding:11px 14px; text-align:center; border-bottom:1px solid var(--card-border); background:rgba(255,255,255,0.03); }
+  table.cmp th:first-child{ text-align:left; }
+  table.cmp td{ padding:9px 14px; border-bottom:1px solid rgba(255,255,255,0.06); text-align:center; }
+  table.cmp td:first-child{ text-align:left; color:var(--ink); font-weight:500; }
+  table.cmp tr:last-child td{ border-bottom:none; }
+  .yes{ color:var(--green-500); font-weight:700; }
+  .no{ color:var(--red-400); font-weight:700; }
+  .part{ color:var(--gold-300); font-size:11.5px; font-weight:600; }
+
+  /* cost bars */
+  .bars{ margin-top:26px; max-width:780px; }
+  .bar-row{ display:flex; align-items:center; gap:14px; margin:12px 0; opacity:0; animation: rise .55s ease forwards; }
+  .bar-label{ width:190px; min-width:150px; font-size:12.5px; color:var(--ink-dim); text-align:right; line-height:1.35; }
+  .bar-label b{ color:var(--ink); display:block; font-size:13px; }
+  .bar-track{ flex:1; display:flex; align-items:center; gap:10px; }
+  .bar-fill{ height:26px; border-radius:7px; }
+  .bar-val{ font-family:'IBM Plex Mono',monospace; font-size:12.5px; color:var(--gold-300); white-space:nowrap; font-weight:600; }
+  .fn{ font-size:10.5px; color:var(--ink-dim); margin-top:16px; max-width:760px; opacity:0; animation: rise .6s ease forwards; animation-delay:.8s; }
+
+  /* roadmap */
+  .road{ position:relative; margin-top:28px; padding-left:4px; max-width:780px; }
+  .road::before{ content:''; position:absolute; left:9px; top:6px; bottom:6px; width:1.5px; background:linear-gradient(180deg, var(--gold-500), transparent); }
+  .road-item{ position:relative; padding:0 0 16px 34px; opacity:0; animation: rise .5s ease forwards; }
+  .road-item::before{ content:''; position:absolute; left:2px; top:3px; width:15px; height:15px; border-radius:50%; background:var(--plum-900); border:2px solid var(--gold-500); }
+  .road-item b{ font-family:'Fraunces',serif; font-size:15.5px; font-weight:600; }
+  .road-item span{ display:block; font-size:12px; color:var(--ink-dim); margin-top:3px; line-height:1.5; }
+
+  /* Q&A risk cards */
+  .qa-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:13px; margin-top:24px; max-width:940px; }
+  .qa-card{ background:var(--card); border:1px solid var(--card-border); border-radius:14px; padding:16px 20px; opacity:0; animation: rise .55s ease forwards; }
+  .qa-card .q{ font-family:'Fraunces',serif; font-size:14.5px; font-weight:600; color:var(--gold-300); }
+  .qa-card .a{ font-size:12.3px; color:var(--ink-dim); line-height:1.6; margin-top:8px; }
+  .qa-card .a b{ color:var(--ink); }
+
+  .story-card{
+    margin-top:26px; max-width:640px; background:rgba(212,166,87,0.07); border:1px solid rgba(212,166,87,0.35);
+    border-radius:16px; padding:22px 26px; opacity:0; animation: rise .6s ease forwards; animation-delay:.3s;
+  }
+  .story-card .ba-tag{ color:var(--gold-300); }
+  .story-card ul{ margin:12px 0 0; padding:0; list-style:none; }
+  .story-card li{ font-size:14px; line-height:1.8; padding-left:18px; position:relative; }
+  .story-card li::before{ content:'?'; position:absolute; left:0; color:var(--gold-500); font-weight:700; }
+
+  .red-card{
+    margin-top:26px; max-width:560px; background:rgba(249,112,102,0.06); border:1px solid rgba(249,112,102,0.3);
+    border-radius:16px; padding:20px 24px; opacity:0; animation: rise .6s ease forwards; animation-delay:.3s;
+  }
+  .red-card .ba-tag{ color:var(--red-400); }
+  .red-card ul{ margin:12px 0 0; padding:0; list-style:none; }
+  .red-card li{ font-size:13px; line-height:1.7; padding-left:18px; position:relative; }
+  .red-card li::before{ content:'—'; position:absolute; left:0; color:var(--ink-dim); }
+
+  /* nav */
+  .nav{ position:absolute; bottom:4vh; left:8vw; right:8vw; display:flex; align-items:center; justify-content:space-between; z-index:20; }
+  .dots{ display:flex; gap:6px; flex-wrap:wrap; max-width:60%; }
+  .dot{ width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.2); cursor:pointer; transition:.3s; }
+  .dot.active{ background:var(--gold-500); width:18px; border-radius:4px; }
+  .arrows{ display:flex; gap:10px; }
+  .arrow-btn{
+    width:40px; height:40px; border-radius:50%; border:1px solid var(--card-border); background:var(--card);
+    color:var(--ink); font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:.2s;
+  }
+  .arrow-btn:hover{ background:rgba(255,255,255,0.1); border-color:var(--violet-400); }
+  .slide-count{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-dim); position:absolute; top:4.5vh; right:8vw; z-index:5; }
+</style>
+</head>
+<body>
+
+<div class="deck">
+
+  <div class="slide-count" id="slideCount">01 / 17</div>
+
+  <!-- 1 — TİTUL -->
+  <section class="slide active">
+    <div class="eyebrow">Olivia Portal · İyul 2026</div>
+    <h1>Niyə <em>Olivia Portal?</em></h1>
+    <p class="lede">Hər şey bir sualla başladı: 60+ mağazanın gündəlik işini kağız, Excel və dağınıq alətlərdən necə vahid bir sistemə yığmaq olar? Bu təqdimat həmin sualın cavabıdır — və daha böyük bir suala: <b style="color:var(--ink)">Bitrix24 və Jira varkən Olivia Portal şirkətə nə qazandırır?</b></p>
+    <div class="stat-row">
+      <div class="stat-card" style="animation-delay:.35s"><div class="stat-num">60+</div><div class="stat-label">Mağaza artıq sistemdə</div></div>
+      <div class="stat-card" style="animation-delay:.45s"><div class="stat-num">180+</div><div class="stat-label">Aktiv user</div></div>
+      <div class="stat-card" style="animation-delay:.55s"><div class="stat-num">Canlı</div><div class="stat-label">Hər gün real istifadədə</div></div>
+    </div>
+  </section>
+
+  <!-- 2 — İCRA XÜLASƏSİ -->
+  <section class="slide">
+    <div class="eyebrow">İcra xülasəsi · 3 konkret cavab</div>
+    <h1>Bir səhifəlik <em>nəticə</em></h1>
+    <div class="exec-grid">
+      <div class="exec-card" style="animation-delay:.25s">
+        <div class="num">CAVAB 01</div>
+        <div class="ttl">Bitrix və Jira bizim pərakəndə proseslərimizi tanımır</div>
+        <div class="bd">Vitrin foto hesabatı + GPS yoxlaması, kassa/inkassasiya nəzarəti, 15.000+ barkodlu kampaniya qiymət yoxlanışı — <b>bu proseslər onlarda mövcud deyil</b> və əlavə pulla da tam qurulmur. Portal isə məhz bunlar üçün tikilib.</div>
+      </div>
+      <div class="exec-card" style="animation-delay:.4s">
+        <div class="num">CAVAB 02</div>
+        <div class="ttl">Xərc onlarla dəfə azdır və artımdan asılı deyil</div>
+        <div class="bd">Bitrix və Jira <b>hər istifadəçiyə görə</b> pul alır — komanda böyüdükcə illik məbləğ qat-qat artır. Portal isə <b>istifadəçi sayından asılı olmayan</b>, dəfələrlə aşağı sabit əməliyyat xərci ilə işləyir.</div>
+      </div>
+      <div class="exec-card" style="animation-delay:.55s">
+        <div class="num">CAVAB 03</div>
+        <div class="ttl">Data və inkişaf tam bizim əlimizdədir</div>
+        <div class="bd">Bütün məlumat <b>öz bazamızda</b>, hər əməliyyat audit jurnalında. Yeni ehtiyac yarananda funksiya <b>daxildə, sürətlə</b> əlavə olunur — heç bir xarici şirkətdən asılılıq yoxdur.</div>
+      </div>
+    </div>
+    <div class="punchline" style="animation-delay:.75s">Bitrix və Jira dünya üçün qurulub. Olivia Portal — Olivia üçün.</div>
+  </section>
+
+  <!-- 3 — PROBLEM -->
+  <section class="slide">
+    <div class="eyebrow">Başlanğıc nöqtəsi</div>
+    <h1>Problem <em>nə idi?</em></h1>
+    <p class="lede">Layihədən əvvəl 60+ mağazanın gündəlik işi bir-biri ilə əlaqəsi olmayan alətlər arasında bölünmüşdü.</p>
+    <div class="red-card">
+      <div class="ba-tag">Köhnə mənzərə</div>
+      <ul>
+        <li>Hər mağaza öz Excel faylında hesabat aparırdı</li>
+        <li>Tapşırıqlar WhatsApp mesajları ilə göndərilirdi — icra izlənmirdi</li>
+        <li>Kassa nəzarəti üçün mərkəzləşdirilmiş görüntü yox idi</li>
+        <li>Vitrin standartlarına əməl olunması yoxlanıla bilmirdi</li>
+        <li>Kampaniya qiymətləri əl ilə, gecikmə və səhvlərlə yayılırdı</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 4 — VAHİD PANEL: XAOSUN SONU -->
+  <section class="slide">
+    <div class="eyebrow">Həll · Vahid idarəetmə paneli</div>
+    <h1>Bütün xaos <em>bir paneldə</em> bitir</h1>
+    <p class="lede">Pərakəndə, Maliyyə, Kommersiya, Marketinq — hər şöbə mağazalardan fərqli tipli hesabatlar və tapşırıqlar istəyir. Hər istək ayrıca kanal, ayrıca fayl, ayrıca link demək idi — xaosun mənbəyi məhz bu idi.</p>
+    <div class="ba-row">
+      <div class="ba-card before" style="animation-delay:.25s">
+        <div class="ba-tag">Əvvəl — dağınıq kanallar</div>
+        <ul>
+          <li>Onlarla Google Sheets linki — hansının aktual olduğunu heç kim dəqiq bilmir</li>
+          <li>Hər şöbənin öz Excel şablonu — 60 mağaza × fərqli fayllar</li>
+          <li>Pozulan düsturlar, səhv format, itən sətirlər — insan səhvi qaçılmazdır</li>
+          <li>Eyni məlumat 3-4 fərqli yerə təkrar yazılır</li>
+          <li>Link dəyişəndə və ya itəndə iş dayanır</li>
+        </ul>
+      </div>
+      <div class="ba-card after" style="animation-delay:.45s">
+        <div class="ba-tag">İndi — vahid panel</div>
+        <ul>
+          <li>Bütün şöbələrin hesabat və tapşırıqları BİR ünvandadır</li>
+          <li>Mağaza hansı fayla yazacağını düşünmür — panel özü yönləndirir</li>
+          <li>Səhv format mümkün deyil — sistem yalnız düzgün datanı qəbul edir</li>
+          <li>Məlumat bir dəfə yazılır, hər şöbə öz icazəsi çərçivəsində görür</li>
+          <li>Panel tam bizə məxsusdur — link, fayl, şablon asılılığı bitir</li>
+        </ul>
+      </div>
+    </div>
+    <div class="punchline" style="animation-delay:.7s">Google Sheets linklərindən, Excel şablonlarından və insan səhvindən azad oluruq — 60 mağazanın bütün məlumat axını tək idarəetmə panelindən keçir.</div>
+  </section>
+
+  <!-- 5 — BUGÜN -->
+  <section class="slide">
+    <div class="eyebrow">Bugünkü vəziyyət</div>
+    <h1>Sistem artıq <em>canlıdır</em></h1>
+    <p class="lede">Bu, təklif və ya ideya deyil — bir neçə ay ərzində qurulmuş, hər gün istifadə olunan işlək sistemdir.</p>
+    <div class="stat-row">
+      <div class="stat-card" style="animation-delay:.3s"><div class="stat-num">60+</div><div class="stat-label">Qeydiyyatlı mağaza</div></div>
+      <div class="stat-card" style="animation-delay:.4s"><div class="stat-num">180+</div><div class="stat-label">Aktiv user</div></div>
+      <div class="stat-card" style="animation-delay:.5s"><div class="stat-num">9</div><div class="stat-label">İşlək əsas modul</div></div>
+      <div class="stat-card" style="animation-delay:.6s"><div class="stat-num">100%</div><div class="stat-label">Şifrələr bank standartı ilə qorunur</div></div>
+      <div class="stat-card" style="animation-delay:.7s"><div class="stat-num">2</div><div class="stat-label">Dil dəstəyi (AZ/RU)</div></div>
+    </div>
+  </section>
+
+  <!-- 5 — PORTAL NƏ EDİR -->
+  <section class="slide">
+    <div class="eyebrow">Funksional əhatə</div>
+    <h1>Portal bu gün <em>nə edir?</em></h1>
+    <div class="check-grid">
+      <div class="check-item" style="animation-delay:.2s"><div class="mark">✓</div><div class="txt"><b>Tapşırıq idarəetməsi</b><span>Admin → mağaza → foto ilə icra → təsdiq — tam dövrə</span></div></div>
+      <div class="check-item" style="animation-delay:.27s"><div class="mark">✓</div><div class="txt"><b>Vitrin hesabatları</b><span>Foto, GPS yoxlaması, əməkdaş seçimi, admin təsdiqi</span></div></div>
+      <div class="check-item" style="animation-delay:.34s"><div class="mark">✓</div><div class="txt"><b>Xərclər və kassa nəzarəti</b><span>Mədaxil/məxaric, qalıq zənciri, qəbz şəkli, analitik panel</span></div></div>
+      <div class="check-item" style="animation-delay:.41s"><div class="mark">✓</div><div class="txt"><b>Elanlar və bildirişlər</b><span>Vaxt planlaması ilə bütün şəbəkəyə ani çatdırılma</span></div></div>
+      <div class="check-item" style="animation-delay:.48s"><div class="mark">✓</div><div class="txt"><b>Analitik hesabatlar</b><span>Mağaza-mağaza görüntü, diaqramlar, tarix filtri</span></div></div>
+      <div class="check-item" style="animation-delay:.55s"><div class="mark">✓</div><div class="txt"><b>Təhlükəsizlik</b><span>Şifrə hashlanması, 5 səhv cəhddə kilid, giriş qaydaları</span></div></div>
+      <div class="check-item" style="animation-delay:.62s"><div class="mark">✓</div><div class="txt"><b>İdarəetmə Mərkəzi</b><span>İstifadəçi yaratma, bloklama, şifrə sıfırlama — GUI ilə</span></div></div>
+      <div class="check-item" style="animation-delay:.69s"><div class="mark">✓</div><div class="txt"><b>Audit jurnalı</b><span>Kim, nə vaxt, nə etdi — hər əməliyyat qeydə alınır</span></div></div>
+      <div class="check-item" style="animation-delay:.76s"><div class="mark">✓</div><div class="txt"><b>İki dil (AZ/RU)</b><span>Hər əməkdaş öz dilində işləyir</span></div></div>
+      <div class="check-item" style="animation-delay:.83s"><div class="mark">✓</div><div class="txt"><b>Mobil tətbiq hissi (PWA)</b><span>Telefonda tətbiq kimi açılır, quraşdırma tələb etmir</span></div></div>
+    </div>
+  </section>
+
+  <!-- 6 — SUAL + DƏRHAL CAVAB -->
+  <section class="slide">
+    <div class="eyebrow">Əsas sual</div>
+    <h1>"Bitrix və Jira varkən <em>niyə bu?</em>"</h1>
+    <p class="lede">Şirkət hazırda Bitrix və Jira ilə işləyir. Hər sualın qısa cavabı burada, ətraflı sübutu isə növbəti slaydlardadır:</p>
+    <div class="qa-grid">
+      <div class="qa-card" style="animation-delay:.25s">
+        <div class="q">Bitrix-də də tapşırıq vermək olur — fərq nədir?</div>
+        <div class="a">Bitrix-də tapşırıq sadəcə mətndir. Portalda tapşırıq <b>GPS yoxlanışı, standart şəkil, foto təsdiqi və avtomatik icra faizi</b> olan tam nəzarətli prosesdir.</div>
+      </div>
+      <div class="qa-card" style="animation-delay:.4s">
+        <div class="q">Bu portal bizə konkret nə qazandırır?</div>
+        <div class="a">Vitrin, kassa, inkassasiya və kampaniya proseslərini <b>tək paneldə</b> birləşdirir — bunlar Bitrix və Jira-da ümumiyyətlə yoxdur.</div>
+      </div>
+      <div class="qa-card" style="animation-delay:.55s">
+        <div class="q">Niyə hazır məhsula yox, öz sistemimizə?</div>
+        <div class="a">Data tam bizim əlimizdə, istifadəçi artımı əlavə xərc yaratmır, hər yeni ehtiyac <b>sürətlə</b> sistemə əlavə olunur — vendor asılılığı yoxdur.</div>
+      </div>
+      <div class="qa-card" style="animation-delay:.7s">
+        <div class="q">Gələcəkdə nə olacaq ki, onları geridə qoysun?</div>
+        <div class="a">AI analitika, anomaliya aşkarlama, satış-hədəf paneli, mağaza reytinqi, dinamik formalar — <b>Olivia-nın öz datası üzərində</b> qurulan modullar.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — TƏYİNAT FƏRQİ -->
+  <section class="slide">
+    <div class="eyebrow">Cavab 1 · Təyinat fərqi</div>
+    <h1>Bunlar eyni işin <em>alətləri deyil</em></h1>
+    <p class="lede">Jira və Bitrix pis alətlər deyil — sadəcə başqa iş üçün yaradılıblar. Bizim əsas iş qatımız — mağaza meydanı — onların heç birinin dilində danışmır.</p>
+    <div class="stack-flow">
+      <div class="stack-node" style="animation-delay:.25s">
+        <div class="tag">Jira</div>
+        <div class="name">Proqramçı aləti</div>
+        <div class="desc">IT komandaları üçün tapşırıq izləmə sistemi. Kassir və mağaza əməkdaşı üçün nəzərdə tutulmayıb — terminologiyası, interfeysi, məntiqi proqram təminatı layihələri üçündür.</div>
+      </div>
+      <div class="stack-node" style="animation-delay:.4s">
+        <div class="tag">Bitrix24</div>
+        <div class="name">Universal ofis aləti</div>
+        <div class="desc">CRM, çat, sənəd — "hamı üçün hər şey". Universal olduğu üçün heç bir sahəyə dərin girmir: pərakəndə vitrin, kassa, barkod prosesləri burada yoxdur.</div>
+      </div>
+      <div class="stack-node hero" style="animation-delay:.55s">
+        <div class="tag">Olivia Portal</div>
+        <div class="name">Pərakəndə əməliyyat sistemi</div>
+        <div class="desc">Olivia-nın öz prosesləri üzərində tikilib: tapşırıq idarəetməsi, vitrin standartları, GPS-li hesabatlar, kassa və inkassasiya nəzarəti, kampaniya barkodları, satış-hədəf paneli, AI analitika, 1C bağlantısı. Hər düymə bizim iş axınımıza görədir.</div>
+      </div>
+    </div>
+    <div class="punchline" style="animation-delay:.75s">Sual "Bitrix, yoxsa Portal?" deyil. Sual budur: mağaza əməliyyatları qatını kim idarə edəcək? Bu qatı nə Bitrix, nə Jira doldurur.</div>
+  </section>
+
+  <!-- 7b — MODULLAR XƏRİTƏSİ -->
+  <section class="slide">
+    <div class="eyebrow">Cavab 1 (davamı) · Modullar xəritəsi</div>
+    <h1>Portal <em>nələri əhatə edir?</em></h1>
+    <p class="lede">Portal tək bir funksiya deyil — pərakəndə şəbəkənin bütün əməliyyat qatını əhatə edən modullar toplusudur. Bir hissəsi bu gün canlıdır, digərləri yol xəritəsindədir — hamısı eyni sistemin içində:</p>
+    <div class="exec-grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:11px;">
+      <div class="exec-card" style="animation-delay:.2s; padding:15px 18px;">
+        <div class="num" style="color:var(--green-500);">CANLI</div>
+        <div class="ttl" style="font-size:14.5px; margin:6px 0 6px;">Tapşırıq idarəetməsi</div>
+        <div class="bd" style="font-size:11.5px;">Admin → mağaza → foto ilə icra → təsdiq. Tam nəzarətli dövrə.</div>
+      </div>
+      <div class="exec-card" style="animation-delay:.27s; padding:15px 18px;">
+        <div class="num" style="color:var(--green-500);">CANLI</div>
+        <div class="ttl" style="font-size:14.5px; margin:6px 0 6px;">Vitrin hesabatları</div>
+        <div class="bd" style="font-size:11.5px;">Foto + GPS + əməkdaş seçimi + admin təsdiqi.</div>
+      </div>
+      <div class="exec-card" style="animation-delay:.34s; padding:15px 18px;">
+        <div class="num" style="color:var(--green-500);">CANLI</div>
+        <div class="ttl" style="font-size:14.5px; margin:6px 0 6px;">Xərclər və kassa nəzarəti</div>
+        <div class="bd" style="font-size:11.5px;">Mədaxil/məxaric, qalıq zənciri, qəbz şəkli, analitik panel.</div>
+      </div>
+      <div class="exec-card" style="animation-delay:.41s; padding:15px 18px;">
+        <div class="num" style="color:var(--green-500);">CANLI</div>
+        <div class="ttl" style="font-size:14.5px; margin:6px 0 6px;">Elanlar və bildirişlər</div>
+        <div class="bd" style="font-size:11.5px;">Vaxt planlaması ilə bütün şəbəkəyə ani çatdırılma.</div>
+      </div>
+      <div class="exec-card" style="animation-delay:.48s; padding:15px 18px;">
+        <div class="num" style="color:var(--green-500);">CANLI</div>
+        <div class="ttl" style="font-size:14.5px; margin:6px 0 6px;">Təhlükəsizlik + Audit</div>
+        <div class="bd" style="font-size:11.5px;">Şifrə qorunması, giriş kilidi, hər əməliyyatın jurnalı.</div>
+      </div>
+      <div class="exec-card" style="animation-delay:.55s; padding:15px 18px;">
+        <div class="num" style="color:var(--green-500);">CANLI</div>
+        <div class="ttl" style="font-size:14.5px; margin:6px 0 6px;">İdarəetmə Mərkəzi</div>
+        <div class="bd" style="font-size:11.5px;">İstifadəçi yaratma, bloklama, şifrə sıfırlama — GUI ilə.</div>
+      </div>
+      <div class="exec-card" style="animation-delay:.62s; padding:15px 18px; border-color:rgba(212,166,87,0.4);">
+        <div class="num" style="color:var(--gold-300);">YOL XƏRİTƏSİ</div>
+        <div class="ttl" style="font-size:14.5px; margin:6px 0 6px;">Genişlənmiş istifadəçi sistemi</div>
+        <div class="bd" style="font-size:11.5px;">4 şöbə, rol-əsaslı icazələr, əhatə dairəsi (bölgə/qrup/mağaza).</div>
+      </div>
+      <div class="exec-card" style="animation-delay:.69s; padding:15px 18px; border-color:rgba(212,166,87,0.4);">
+        <div class="num" style="color:var(--gold-300);">YOL XƏRİTƏSİ</div>
+        <div class="ttl" style="font-size:14.5px; margin:6px 0 6px;">Kampaniya qiymət modulu</div>
+        <div class="bd" style="font-size:11.5px;">15.000+ barkodun aylıq qiymət dövrü tam portalda.</div>
+      </div>
+      <div class="exec-card" style="animation-delay:.76s; padding:15px 18px; border-color:rgba(212,166,87,0.4);">
+        <div class="num" style="color:var(--gold-300);">YOL XƏRİTƏSİ</div>
+        <div class="ttl" style="font-size:14.5px; margin:6px 0 6px;">İnkassasiya nəzarəti</div>
+        <div class="bd" style="font-size:11.5px;">Gündəlik bank təhvili + çek şəkli + avtomatik xatırlatma.</div>
+      </div>
+      <div class="exec-card" style="animation-delay:.83s; padding:15px 18px; border-color:rgba(212,166,87,0.4);">
+        <div class="num" style="color:var(--gold-300);">YOL XƏRİTƏSİ</div>
+        <div class="ttl" style="font-size:14.5px; margin:6px 0 6px;">Satış, hədəf və mağaza reytinqi</div>
+        <div class="bd" style="font-size:11.5px;">Canlı performans, hədəf faizləri, liderlik lövhəsi.</div>
+      </div>
+      <div class="exec-card" style="animation-delay:.9s; padding:15px 18px; border-color:rgba(212,166,87,0.4);">
+        <div class="num" style="color:var(--gold-300);">YOL XƏRİTƏSİ</div>
+        <div class="ttl" style="font-size:14.5px; margin:6px 0 6px;">AI analitika + anomaliya</div>
+        <div class="bd" style="font-size:11.5px;">Sadə dildə sual → qrafik cavab; qeyri-adi xərci sistem özü görür.</div>
+      </div>
+      <div class="exec-card" style="animation-delay:.97s; padding:15px 18px; border-color:rgba(212,166,87,0.4);">
+        <div class="num" style="color:var(--gold-300);">YOL XƏRİTƏSİ</div>
+        <div class="ttl" style="font-size:14.5px; margin:6px 0 6px;">Dinamik forma + 1C inteqrasiya</div>
+        <div class="bd" style="font-size:11.5px;">Admin öz formasını qurur; oflayn satış terminalı ilə 1C bağlantısı.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — "BİTRİXDƏ DƏ TAPŞIRIQ VAR" -->
+  <section class="slide">
+    <div class="eyebrow">Cavab 2 · Konkret misal</div>
+    <h1>"Bitrix-də də tapşırıq var" — <em>bəs fərq?</em></h1>
+    <p class="lede">Eyni işi — "60 mağazada yeni vitrin standartını tətbiq et" — hər iki sistemdə izləyək:</p>
+    <div class="ba-row">
+      <div class="ba-card before" style="animation-delay:.25s">
+        <div class="ba-tag">Bitrix / Jira ilə</div>
+        <ul>
+          <li>Mətn tapşırıq yaradılır: "Vitrini yeni standarta uyğun düz"</li>
+          <li>Şəkillər şərhlərə (kommentlərə) atılır — qarışıq, itir</li>
+          <li>Şəkil doğrudan həmin mağazadan çəkilib? — yoxlamaq mümkün deyil</li>
+          <li>Standart şəkil ilə müqayisə — yoxdur</li>
+          <li>60 mağazadan kim etdi, kim etmədi — əl ilə sayılır</li>
+          <li>İcra edən konkret əməkdaş — qeyri-müəyyən</li>
+          <li>Yekun hesabat — kimsə Excel-ə əl ilə yığmalıdır</li>
+        </ul>
+      </div>
+      <div class="ba-card after" style="animation-delay:.45s">
+        <div class="ba-tag">Olivia Portal ilə</div>
+        <ul>
+          <li>Tapşırıqda foto sayı, "Əvvəl/Sonra" tələbi, son tarix təyin olunur</li>
+          <li>Marketinqin təsdiqlənmiş standart şəkli tapşırığın içində görünür</li>
+          <li>GPS avtomatik yoxlanır — şəkil mağazanın öz ərazisindən çəkilməlidir</li>
+          <li>İcra edən əməkdaş siyahıdan seçilir — məsuliyyət konkretdir</li>
+          <li>Admin təsdiq/rədd edir, rədd səbəbi yazılır, tapşırıq geri qayıdır</li>
+          <li>60 mağazanın icra faizi ekranda avtomatik görünür</li>
+          <li>Hər addım audit jurnalına yazılır</li>
+        </ul>
+      </div>
+    </div>
+    <div class="punchline" style="animation-delay:.7s">Bitrix-də tapşırıq mətndir. Portalda tapşırıq nəzarət olunan prosesdir.</div>
+  </section>
+
+  <!-- 9 — MÜQAYİSƏ CƏDVƏLİ -->
+  <section class="slide">
+    <div class="eyebrow">Cavab 3 · Funksiya müqayisəsi</div>
+    <h1>Üz-üzə <em>müqayisə</em></h1>
+    <div class="cmp-wrap">
+      <table class="cmp">
+        <tr><th>Bizə lazım olan proses</th><th>Olivia Portal</th><th>Bitrix24</th><th>Jira</th></tr>
+        <tr><td>Vitrin foto hesabatı + GPS yoxlaması</td><td class="yes">✓</td><td class="no">✗</td><td class="no">✗</td></tr>
+        <tr><td>Kassa nəzarəti: mədaxil/məxaric + qalıq zənciri</td><td class="yes">✓</td><td class="no">✗</td><td class="no">✗</td></tr>
+        <tr><td>İnkassasiya nəzarəti (bank çeki + avtomatik xatırlatma)</td><td class="yes">✓ *</td><td class="no">✗</td><td class="no">✗</td></tr>
+        <tr><td>15.000+ barkodlu kampaniya qiymət yoxlanışı</td><td class="yes">✓ *</td><td class="no">✗</td><td class="no">✗</td></tr>
+        <tr><td>Vitrin standartları (Marketinq → təsdiq → mağaza)</td><td class="yes">✓ *</td><td class="no">✗</td><td class="no">✗</td></tr>
+        <tr><td>1C Enterprise ilə birbaşa inteqrasiya</td><td class="yes">✓ *</td><td class="part">partnyorla, əlavə pulla</td><td class="no">✗</td></tr>
+        <tr><td>Tam Azərbaycan dilində interfeys</td><td class="yes">✓</td><td class="no">✗</td><td class="no">✗</td></tr>
+        <tr><td>AZ dilində AI köməkçi (öz sənədlərimiz üzrə)</td><td class="yes">✓ *</td><td class="no">✗</td><td class="no">✗</td></tr>
+        <tr><td>Mağaza əməkdaşı üçün sadəlik (təlimatsız istifadə)</td><td class="yes">✓</td><td class="part">təlim tələb edir</td><td class="no">✗</td></tr>
+        <tr><td>Data tam bizim serverimizdə/nəzarətimizdə</td><td class="yes">✓</td><td class="no">✗</td><td class="no">✗</td></tr>
+        <tr><td>İstifadəçi artımı = əlavə xərc</td><td class="yes">yoxdur</td><td class="part">tarif sıçrayışı</td><td class="no">hər user pullu</td></tr>
+        <tr><td>Yeni funksiya üçün vendor asılılığı</td><td class="yes">yoxdur</td><td class="no">var</td><td class="no">var</td></tr>
+      </table>
+    </div>
+    <div class="fn">* — Portalın yol xəritəsində planlaşdırılmış modullar (bax: gələcək slaydlar). Ümumi funksiyalar (adi tapşırıq, çat, təqvim) hər üç sistemdə mövcuddur — cədvəl məhz Olivia-nın kritik pərakəndə proseslərini göstərir.</div>
+  </section>
+
+  <!-- 10 — MALİYYƏ -->
+  <section class="slide">
+    <div class="eyebrow">Cavab 4 · Maliyyə modeli</div>
+    <h1>Xərc modeli <em>kökündən fərqlidir</em></h1>
+    <p class="lede">Bitrix və Jira hər istifadəçiyə görə pul alır — komanda böyüdükcə illik məbləğ qat-qat artır. Portal isə istifadəçi sayından asılı olmayan, sabit və dəfələrlə aşağı əməliyyat xərci ilə işləyir.</p>
+    <div class="bars">
+      <div class="bar-row" style="animation-delay:.3s">
+        <div class="bar-label"><b>Jira</b>hər istifadəçi × hər ay</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%; background:linear-gradient(90deg,#F97066,#c2554d);"></div><span class="bar-val">ən yüksək</span></div>
+      </div>
+      <div class="bar-row" style="animation-delay:.5s">
+        <div class="bar-label"><b>Bitrix24</b>istifadəçi tarif pilləsi + fərdiləşdirmə</div>
+        <div class="bar-track"><div class="bar-fill" style="width:42%; background:linear-gradient(90deg,#D4A657,#a87f3e);"></div><span class="bar-val">orta-yüksək</span></div>
+      </div>
+      <div class="bar-row" style="animation-delay:.7s">
+        <div class="bar-label"><b>Olivia Portal</b>istifadəçi sayı limitsiz</div>
+        <div class="bar-track"><div class="bar-fill" style="width:6%; min-width:20px; background:linear-gradient(90deg,#4ADE80,#2fa85c);"></div><span class="bar-val">dəfələrlə aşağı</span></div>
+      </div>
+    </div>
+    <div class="punchline" style="animation-delay:.95s">Fərq təkcə məbləğdə deyil, modeldədir: hazır məhsullarda komanda böyüdükcə xərc artır, Portalda isə böyümə əlavə xərc yaratmır. Uzun müddətdə fərq şirkət üçün ciddi qənaətə çevrilir.</div>
+    <div class="fn">Bitrix24 və Jira istifadəçi sayına əsaslanan abunə modeli ilə işləyir; rəsmi tariflər hər iki şirkətin saytında açıq göstərilib. Portal isə sabit infrastruktur xərci ilə işlədiyi üçün istifadəçi artımından təsirlənmir.</div>
+  </section>
+
+  <!-- 11 — DATA SAHİBLİYİ -->
+  <section class="slide">
+    <div class="eyebrow">Cavab 5 · Data sahibliyi və təhlükəsizlik</div>
+    <h1>Məlumat kimin <em>əlindədir?</em></h1>
+    <div class="ba-row">
+      <div class="ba-card before" style="animation-delay:.25s">
+        <div class="ba-tag">Bitrix / Jira ilə</div>
+        <ul>
+          <li>Bütün şirkət datası xarici vendorun serverində saxlanılır</li>
+          <li>Qiymət siyasətini vendor müəyyən edir — artımlar bizim əlimizdə deyil</li>
+          <li>Funksiya dəyişikliyi, limitlər, şərtlər — hamısı vendor qərarıdır</li>
+          <li>Xidmət dayansa və ya bahalaşsa — alternativ yoxdur, data köçürməsi ağrılıdır</li>
+        </ul>
+      </div>
+      <div class="ba-card after" style="animation-delay:.45s">
+        <div class="ba-tag">Olivia Portal ilə</div>
+        <ul>
+          <li>Bütün data öz bazamızda (Avropa serveri), istənilən an tam ixrac mümkündür</li>
+          <li>Şifrələr bank standartı (bcrypt) ilə geri dönüşü mümkünsüz formada qorunur</li>
+          <li>Hər mağaza yalnız öz məlumatını görür — baza səviyyəsində sərt qayda (RLS)</li>
+          <li>5 səhv giriş cəhdində avtomatik kilidlənmə</li>
+          <li>Hər əməliyyat audit jurnalında — kim, nə vaxt, nə etdi</li>
+        </ul>
+      </div>
+    </div>
+    <div class="punchline" style="animation-delay:.7s">Pərakəndə şəbəkənin kassa və satış məlumatları strateji aktivdir — o, icarəyə götürülmüş sistemdə yox, öz əlimizdə olmalıdır.</div>
+  </section>
+
+  <!-- 12 — ÇEVİKLİK -->
+  <section class="slide">
+    <div class="eyebrow">Cavab 6 · Sürət və çeviklik</div>
+    <h1>Yeni ehtiyac yaranırsa <em>nə baş verir?</em></h1>
+    <div class="ba-row">
+      <div class="ba-card before" style="animation-delay:.25s">
+        <div class="ba-tag">Vendor məhsulunda</div>
+        <ul>
+          <li>Tələb vendora/partnyora göndərilir</li>
+          <li>Qiymət təklifi, müqavilə, gözləmə növbəsi</li>
+          <li>Nəticə: həftələr-aylar + əlavə büdcə</li>
+          <li>Bəzi tələblər ümumiyyətlə mümkün olmur — məhsul bizim üçün deyil</li>
+        </ul>
+      </div>
+      <div class="ba-card after" style="animation-delay:.45s">
+        <div class="ba-tag">Olivia Portalda</div>
+        <ul>
+          <li>Ehtiyac daxildə müzakirə olunur, həll sürətlə hazırlanır</li>
+          <li>Yeni modul müasir texnologiyalarla qısa müddətdə qurulur</li>
+          <li>Sübut: Xərclər, Vitrin, Elanlar, İdarəetmə Mərkəzi — hamısı bu üsulla, qısa müddətdə istifadəyə verilib</li>
+          <li>Rəhbərliyin yeni tələbləri sistemin təbii inkişaf istiqamətinə çevrilir</li>
+        </ul>
+      </div>
+    </div>
+    <div class="punchline" style="animation-delay:.7s">Yeni ehtiyac yaranan kimi sistem ona uyğunlaşır — hazır məhsulların vermədiyi sürət və çeviklik budur.</div>
+  </section>
+
+  <!-- 13 — AI ÜSTÜNLÜYÜ -->
+  <section class="slide">
+    <div class="eyebrow">Cavab 7 · Süni intellekt üstünlüyü</div>
+    <h1>AI: bizim datamız, <em>bizim dilimizdə</em></h1>
+    <p class="lede">Bitrix və Jira-da da AI funksiyaları var — amma ingilis dilində, ümumi məqsədli və bizim daxili proseslərə bağlı deyil. Portalın planlaşdırılan AI-ı isə Olivia-nın içində, bizim datamız üzərində işləyəcək:</p>
+    <div class="check-grid">
+      <div class="check-item" style="animation-delay:.25s"><div class="mark">→</div><div class="txt"><b>Sənəd köməkçisi</b><span>Daxili şirkət sənədləri üzrə Azərbaycan dilində cavab — məzuniyyət, kassa, prosedur sualları</span></div></div>
+      <div class="check-item" style="animation-delay:.35s"><div class="mark">→</div><div class="txt"><b>AI Analitik</b><span>Rəhbər sadə dildə soruşur: "Bu ay ən zəif 5 mağaza hansıdır?" — sistem cavabı qrafiklə qaytarır</span></div></div>
+      <div class="check-item" style="animation-delay:.45s"><div class="mark">→</div><div class="txt"><b>Anomaliya aşkarlama</b><span>Qeyri-adi xərc, fəaliyyətsizlik, gecikmə — sistem özü görür və xəbərdarlıq edir. Kassa nəzarəti üçün kritik alət</span></div></div>
+      <div class="check-item" style="animation-delay:.55s"><div class="mark">→</div><div class="txt"><b>Avtomatik hesabatlar</b><span>Həftəlik/aylıq rəhbərlik hesabatını sistem özü yazır</span></div></div>
+    </div>
+    <div class="punchline" style="animation-delay:.75s">Hədəf: rəhbərliyin hesabat gözlədiyi sistem yox, rəhbərliyə özü hesabat verən sistem.</div>
+  </section>
+
+  <!-- 14 — YOL XƏRİTƏSİ -->
+  <section class="slide">
+    <div class="eyebrow">Gələcək · Yol xəritəsi</div>
+    <h1>Bundan sonra <em>nə gəlir?</em></h1>
+    <div class="road">
+      <div class="road-item" style="animation-delay:.2s"><b>Genişlənmiş istifadəçi sistemi (4 şöbə)</b><span>Pərakəndə, Maliyyə, Kommersiya, Marketinq — hər rəhbər öz əhatə dairəsini görür: bölgə, qrup, mağaza səviyyəsində</span></div>
+      <div class="road-item" style="animation-delay:.3s"><b>Kampaniya Qiymət Modulu</b><span>15.000+ barkodun aylıq qiymət dövrü tam portala keçir — Excel asılılığı bitir</span></div>
+      <div class="road-item" style="animation-delay:.4s"><b>İnkassasiya nəzarəti</b><span>Hər mağazanın gündəlik bank təhvili çeklə qeydə alınır, gecikmədə avtomatik xəbərdarlıq</span></div>
+      <div class="road-item" style="animation-delay:.5s"><b>Satış və Hədəf Paneli</b><span>Mağazalar üzrə canlı performans, hədəf faizləri, liderlik lövhəsi</span></div>
+      <div class="road-item" style="animation-delay:.6s"><b>Vitrin Standartları sistemi</b><span>Marketinq standartı yükləyir → təsdiq → hər vitrin tapşırığında etalon şəkil</span></div>
+      <div class="road-item" style="animation-delay:.7s"><b>Dinamik Forma Sistemi</b><span>Admin istənilən yeni hesabat formasını özü qurur — proqramçıya ehtiyac olmadan</span></div>
+      <div class="road-item" style="animation-delay:.8s"><b>1C inteqrasiyası + oflayn satış terminalı</b><span>İnternet kəsilsə belə satış dayanmır — heç bir hazır məhsulun vermədiyi imkan</span></div>
+    </div>
+  </section>
+
+  <!-- 15 — RİSKLƏR -->
+  <section class="slide">
+    <div class="eyebrow">Şəffaflıq · Risklər və cavablar</div>
+    <h1>Riskləri <em>gizlətmirik</em></h1>
+    <p class="lede">Hər layihənin riski var. Fərq — onları qabaqcadan görüb tədbir görməkdədir:</p>
+    <div class="qa-grid">
+      <div class="qa-card" style="animation-delay:.25s">
+        <div class="q">"Layihə bir nəfərdən asılı deyilmi?"</div>
+        <div class="a">Hər qərar <b>versiyalı sənədlərdə</b> yazılır, bütün kod <b>qorunan arxivdə</b> saxlanılır. Sistem sənədləşdirilmiş şəkildə qurulduğu üçün istənilən mütəxəssis AI dəstəyi ilə davam etdirə bilər.</div>
+      </div>
+      <div class="qa-card" style="animation-delay:.4s">
+        <div class="q">"Data itə bilərmi?"</div>
+        <div class="a">Gündəlik <b>avtomatik ehtiyat nüsxə</b> strategiyası plandadır; peşəkar server planına keçid və Avropada daha yaxın, daha sürətli serverə köçürmə yol xəritəsindədir.</div>
+      </div>
+      <div class="qa-card" style="animation-delay:.55s">
+        <div class="q">"Təhlükəsizlik kifayətdirmi?"</div>
+        <div class="a">Artıq tətbiq olunub: şifrələr <b>bank standartı ilə</b> hashlanır, 5 səhv cəhddə kilid, baza səviyyəsində giriş qaydaları, tam audit jurnalı. Təhlükəsizlik yoxlama siyahısı üzrə işlər davam edir.</div>
+      </div>
+      <div class="qa-card" style="animation-delay:.7s">
+        <div class="q">"Böyüməyə davam gətirəcəkmi?"</div>
+        <div class="a">Memarlıq böyüməyə hazırdır: məlumat həcmi artdıqca <b>sənaye səviyyəli data anbarına</b> (BigQuery) keçid yolu əvvəlcədən nəzərdə tutulub.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 16 — YEKUN -->
+  <section class="slide">
+    <div class="eyebrow">Yekun</div>
+    <h1>Qərar üçün <em>3 fakt</em></h1>
+    <div class="exec-grid">
+      <div class="exec-card" style="animation-delay:.25s">
+        <div class="num">FAKT 01</div>
+        <div class="ttl">Boşluğu yalnız Portal doldurur</div>
+        <div class="bd">Vitrin, kassa, inkassasiya, kampaniya barkodları — 60 mağazanın real gündəlik işi. Bu qat nə Bitrix-də, nə Jira-da mövcuddur.</div>
+      </div>
+      <div class="exec-card" style="animation-delay:.4s">
+        <div class="num">FAKT 02</div>
+        <div class="ttl">Xərc onlarla dəfə azdır</div>
+        <div class="bd">Bitrix və Jira hər istifadəçiyə görə pul alır — komanda böyüdükcə xərc qat-qat artır. Portal sabit, dəfələrlə aşağı xərclə işləyir və böyümədən təsirlənmir.</div>
+      </div>
+      <div class="exec-card" style="animation-delay:.55s">
+        <div class="num">FAKT 03</div>
+        <div class="ttl">Aktiv bizimdir və böyüyür</div>
+        <div class="bd">Sistem artıq canlıdır, 60+ mağaza istifadə edir. Hər ay yeni modul əlavə olunur — data, kod və inkişaf istiqaməti tam Olivia-nın nəzarətindədir.</div>
+      </div>
+    </div>
+    <div class="punchline" style="animation-delay:.75s">Bitrix və Jira icarəyə götürülmüş alətlərdir. Olivia Smart Portal — şirkətin öz rəqəmsal aktividir: bu gün işləyir, sabah daha güclüdür.</div>
+  </section>
+
+  <div class="nav">
+    <div class="arrows">
+      <button class="arrow-btn" id="prevBtn">←</button>
+      <button class="arrow-btn" id="nextBtn">→</button>
+    </div>
+    <div class="dots" id="dots"></div>
+  </div>
+
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+  const dotsWrap = document.getElementById('dots');
+  const slideCount = document.getElementById('slideCount');
+
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.addEventListener('click', () => goTo(i));
+    dotsWrap.appendChild(d);
+  });
+  const dots = dotsWrap.querySelectorAll('.dot');
+  slideCount.textContent = '01 / ' + String(total).padStart(2,'0');
+
+  function restartAnim(slide){
+    const animated = slide.querySelectorAll('[style*="animation-delay"], .eyebrow, h1, .lede, .cmp-wrap, .fn, .punchline');
+    animated.forEach(el=>{
+      el.style.animation = 'none';
+      void el.offsetWidth;
+      el.style.animation = null;
+    });
+  }
+
+  function goTo(i){
+    if(i < 0 || i >= total || i === current) return;
+    slides[current].classList.remove('active');
+    slides[i].classList.add('active');
+    dots[current].classList.remove('active');
+    dots[i].classList.add('active');
+    restartAnim(slides[i]);
+    current = i;
+    slideCount.textContent = String(i+1).padStart(2,'0') + ' / ' + String(total).padStart(2,'0');
+  }
+
+  document.getElementById('nextBtn').addEventListener('click', ()=> goTo(current+1));
+  document.getElementById('prevBtn').addEventListener('click', ()=> goTo(current-1));
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'ArrowRight') goTo(current+1);
+    if(e.key === 'ArrowLeft') goTo(current-1);
+  });
+
+  let touchX = null;
+  document.addEventListener('touchstart', e=> touchX = e.touches[0].clientX);
+  document.addEventListener('touchend', e=>{
+    if(touchX === null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    if(dx > 50) goTo(current-1);
+    if(dx < -50) goTo(current+1);
+    touchX = null;
+  });
+</script>
+
+</body>
+</html>
